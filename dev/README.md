@@ -6,3 +6,8 @@
 - Adminer: `http://localhost:7001`
 
 `make down`で開発環境を終了します。
+
+## 補足事項　WSL(Ubuntu)で動かす場合
+
+- `sudo apt install gnupg2 pass` 左記のpackageが必要
+- 社内からのdocker buildではwget zipのpackage downloadでこける。（現在申請中）
