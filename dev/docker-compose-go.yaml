@@ -6,7 +6,8 @@ services:
       context: ../webapp/frontend
       dockerfile: ../../dev/frontend/Dockerfile
     volumes:
-      - ./nginx:/etc/nginx/conf.d
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/conf.d/default.conf:/etc/nginx/conf.d/default.conf
     ports:
       - "8080:80"
     depends_on:
@@ -44,6 +45,8 @@ services:
       - "3306:3306"
     volumes:
       - mysql:/var/lib/mysql
+      - ../mysql_log:/tmp/mysql/
+      - ./config/mysql.cnf:/etc/mysql/conf.d/mysql.cnf
   adminer:
     image: adminer:latest
     restart: always
