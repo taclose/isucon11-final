@@ -1,0 +1,3 @@
+nginx_log/*.log
+mysql_log/*.log
+
