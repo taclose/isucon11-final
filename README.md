@@ -68,7 +68,7 @@ announcementsとunread_announcementsがあるのか。別テーブルで管理�
 - ８時間の改善の中でここまで読む必要性があるかはちょっと現段階ではわからない。
 
 
-## 
+## DB接続時に`interpolateParams=true` SCORE
 
 
 
