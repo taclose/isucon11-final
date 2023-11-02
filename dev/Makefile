@@ -2,6 +2,9 @@ TARGET ?= go
 
 .PHONY: up
 up: ## prepare dev environment
+	@:>| ../nginx_log/error.log
+	@:>| ../nginx_log/access.log
+	@:>| ../mysql_log/slow.log
 	@docker-compose -f docker-compose-$(TARGET).yaml up -d --build
 	@until (curl --silent http://localhost:7000/api/users/me > /dev/null) do sleep 1;done; echo ready
 
