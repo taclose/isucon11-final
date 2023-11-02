@@ -1466,11 +1466,29 @@ func (h *handlers) AddAnnouncement(c echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
-	for _, user := range targets {
-		if _, err := tx.Exec("INSERT INTO `unread_announcements` (`announcement_id`, `user_id`) VALUES (?, ?)", req.ID, user.ID); err != nil {
-			c.Logger().Error(err)
-			return c.NoContent(http.StatusInternalServerError)
+	if len(targets) == 0 {
+		return c.NoContent(http.StatusCreated)
+	}
+
+	// SQL文を事前に準備
+	query = "INSERT INTO `unread_announcements` (`announcement_id`, `user_id`) VALUES "
+	values := []interface{}{}
+
+	for i, user := range targets {
+		query += "(?, ?)"
+		values = append(values, req.ID, user.ID)
+
+		// 最後の行でない場合、カンマを追加
+		if i < len(targets)-1 {
+			query += ","
 		}
+	}
+
+	// バッチ挿入を実行
+	if _, err := tx.Exec(query, values...); err != nil {
+		c.Logger().Error(err)
+		tx.Rollback()
+		return c.NoContent(http.StatusInternalServerError)
 	}
 
 	if err := tx.Commit(); err != nil {
