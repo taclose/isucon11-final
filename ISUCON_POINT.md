@@ -32,6 +32,14 @@ log_format json escape=json '{"time": "$time_iso8601",'
                                 '"response_time": "$upstream_response_time"}';
 access_log /var/log/nginx/access.log json;
 ```
+#### ログを廃止したい時は以下にする。
+
+```text
+access_log  off;
+error_log   /dev/null crit;
+```
+
+
 ### nginx log 解析
 
 ```text
