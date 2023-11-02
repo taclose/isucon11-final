@@ -1539,13 +1539,19 @@ func (h *handlers) GetAnnouncementDetail(c echo.Context) error {
 		return c.String(http.StatusNotFound, "No such announcement.")
 	}
 
-	var registrationCount int
-	if err := tx.Get(&registrationCount, "SELECT COUNT(*) FROM `registrations` WHERE `course_id` = ? AND `user_id` = ?", announcement.CourseID, userID); err != nil {
-		c.Logger().Error(err)
-		return c.NoContent(http.StatusInternalServerError)
-	}
-	if registrationCount == 0 {
-		return c.String(http.StatusNotFound, "No such announcement.")
+	// この処理不要と思うので削除。履修されてなかったら既に上で 404を返してるはず。先にやるならまだわかるけど。
+	// var registrationCount int
+	// if err := tx.Get(&registrationCount, "SELECT COUNT(*) FROM `registrations` WHERE `course_id` = ? AND `user_id` = ?", announcement.CourseID, userID); err != nil {
+	// 	c.Logger().Error(err)
+	// 	return c.NoContent(http.StatusInternalServerError)
+	// }
+	// if registrationCount == 0 {
+	// 	return c.String(http.StatusNotFound, "No such announcement.")
+	// }
+
+	// 既に削除ずみならUPDATE不要
+	if !announcement.Unread {
+		return c.JSON(http.StatusOK, announcement)
 	}
 
 	if _, err := tx.Exec("UPDATE `unread_announcements` SET `is_deleted` = true WHERE `announcement_id` = ? AND `user_id` = ?", announcementID, userID); err != nil {
