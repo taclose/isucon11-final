@@ -161,9 +161,56 @@ Query数の多い`SELECT announcements cources unread_announcements`,`SELECT reg
 
 ## 無駄にCOMMITしない。未読お知らせのUPDATEを無駄に実施しない(SCORE: 3124)
 
+### Slow Query 確認
 
+改修後のSlowQuery
 
+```
+# Profile
+# Rank Query ID                            Response time  Calls R/Call V/M
+# ==== =================================== ============== ===== ====== ===
+#    1 0xFFFCA4D67EA0A788813031B8BBC3B329  107.5313 67.2%  8083 0.0133  0.01 COMMIT
+#    2 0xDAFB520F3EA62E0FD8FCB26DC5D1E62F    4.4859  2.8%   243 0.0185  0.00 INSERT courses
+#    3 0x7DFA2D5D9DBC803F79DB97773EC5447B    4.3811  2.7%  1688 0.0026  0.01 INSERT time_zone_transition
+#    4 0xF16955B9A50074ED04E1B8A511E35989    4.0859  2.6%  2998 0.0014  0.01 SELECT announcements courses unread_announcements
+#    5 0x27543A651E60736B50443886E289E35A    3.6054  2.3%  2852 0.0013  0.00 UPDATE unread_announcements
+#    6 0x9E2DA589A20EC24C34E11DDE0FBF5564    2.6932  1.7%  8264 0.0003  0.00 START
+#    7 0x2BC75A9C3EB65F1EC570DFB4E3F111C5    2.5980  1.6%  1075 0.0024  0.00 SELECT announcements courses registrations unread_announcements
+#    8 0x34680D6218DB2F97EAE350D366B60E94    1.8745  1.2%   452 0.0041  0.02 INSERT unread_announcements
+#    9 0x201AB42EC253BFB0F6BC1153F6B93083    1.4473  0.9%  1899 0.0008  0.00 SELECT courses
+#   10 0x6C0FF098D63D248BBF3D40588EFB42EF    1.3552  0.8%   928 0.0015  0.00 UPDATE submissions users
+#   11 0xBCFA83825ED2F4DBAB748E30997E1B95    1.3201  0.8%  1386 0.0010  0.00 INSERT UPDATE registrations
+#   12 0x93B0490C6027E6D67E3D4DA357148667    1.3133  0.8%  1789 0.0007  0.00 INSERT time_zone_transition_type
+#   13 0x1F21068CC7652980263E82315944F5FD    1.3100  0.8%  1135 0.0012  0.01 SELECT unread_announcements
+#   14 0x396201721CD58410E070DA9421CA8C8D    1.2298  0.8%  1680 0.0007  0.00 SELECT users
+#   15 0x63C05502F034B2DB20500EA0606444D4    1.2252  0.8%  1349 0.0009  0.01 SELECT classes
+#   16 0xD22122C68747429FE1B81D07D7E3DD52    1.2049  0.8%  1401 0.0009  0.00 SELECT courses
+#   17 0xAE994A27799DADD410E848351C4DFF53    1.1662  0.7%   941 0.0012  0.00 SELECT classes submissions
+#   18 0x9304F82758390EA207A515217B0345EB    1.1141  0.7%     6 0.1857  0.30 INSERT users
+#   19 0x98DD1BA507AB79261637698A8004A814    1.1008  0.7%   929 0.0012  0.00 INSERT UPDATE submissions
+#   20 0x4A879C906EDA9FDE22E01B64DA82E819    0.9458  0.6%  1408 0.0007  0.00 SELECT registrations
+# MISC 0xMISC                               13.9281  8.7% 15484 0.0009   0.0 <79 ITEMS>
+```
 
+Commitは仕方ない？INSERT courcesから挑戦していく。
 
+## 外部キー制約をやめて、代わりにINDEXを残す(SCORE: 3283)
+
+### Slow Query 確認
+
+```
+# Profile
+# Rank Query ID                            Response time  Calls R/Call V/M
+# ==== =================================== ============== ===== ====== ===
+#    1 0xFFFCA4D67EA0A788813031B8BBC3B329  112.8640 71.7%  8194 0.0138  0.01 COMMIT
+#    2 0x27543A651E60736B50443886E289E35A    4.9076  3.1%  2967 0.0017  0.03 UPDATE unread_announcements
+#    3 0xDAFB520F3EA62E0FD8FCB26DC5D1E62F    4.0318  2.6%   209 0.0193  0.00 INSERT courses
+#    4 0xF16955B9A50074ED04E1B8A511E35989    3.7652  2.4%  3136 0.0012  0.00 SELECT announcements courses unread_announcements
+#    5 0x2BC75A9C3EB65F1EC570DFB4E3F111C5    2.8928  1.8%  1137 0.0025  0.00 SELECT announcements courses registrations unread_announcements
+#    6 0x9E2DA589A20EC24C34E11DDE0FBF5564    2.7497  1.7%  8412 0.0003  0.00 START
+```
+
+Slow Queryの調査からは劇的な改善点が見つからない。
+ぐっちょくに次はコード読んで探してみる。
 
 
