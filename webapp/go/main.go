@@ -458,7 +458,7 @@ func (h *handlers) RegisterCourses(c echo.Context) error {
 
 		// すでに履修登録済みの科目は無視する
 		var count int
-		if err := tx.Get(&count, "SELECT COUNT(*) FROM `registrations` WHERE `course_id` = ? AND `user_id` = ?", course.ID, userID); err != nil {
+		if err := tx.Get(&count, "SELECT COUNT(*) FROM `registrations` WHERE `course_id` = ? AND `user_id` = ? LIMIT 1", course.ID, userID); err != nil {
 			c.Logger().Error(err)
 			return c.NoContent(http.StatusInternalServerError)
 		}
@@ -919,7 +919,7 @@ func (h *handlers) SetCourseStatus(c echo.Context) error {
 	defer tx.Rollback()
 
 	var count int
-	if err := tx.Get(&count, "SELECT COUNT(*) FROM `courses` WHERE `id` = ? FOR UPDATE", courseID); err != nil {
+	if err := tx.Get(&count, "SELECT COUNT(*) FROM `courses` WHERE `id` = ?  LIMIT 1 FOR UPDATE", courseID); err != nil {
 		c.Logger().Error(err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
@@ -977,7 +977,7 @@ func (h *handlers) GetClasses(c echo.Context) error {
 	defer tx.Rollback()
 
 	var count int
-	if err := tx.Get(&count, "SELECT COUNT(*) FROM `courses` WHERE `id` = ?", courseID); err != nil {
+	if err := tx.Get(&count, "SELECT COUNT(*) FROM `courses` WHERE `id` = ? LIMIT 1", courseID); err != nil {
 		c.Logger().Error(err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
@@ -1111,7 +1111,7 @@ func (h *handlers) SubmitAssignment(c echo.Context) error {
 	}
 
 	var registrationCount int
-	if err := tx.Get(&registrationCount, "SELECT COUNT(*) FROM `registrations` WHERE `user_id` = ? AND `course_id` = ?", userID, courseID); err != nil {
+	if err := tx.Get(&registrationCount, "SELECT COUNT(*) FROM `registrations` WHERE `user_id` = ? AND `course_id` = ? LIMIT 1", userID, courseID); err != nil {
 		c.Logger().Error(err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
@@ -1227,7 +1227,7 @@ func (h *handlers) DownloadSubmittedAssignments(c echo.Context) error {
 	defer tx.Rollback()
 
 	var classCount int
-	if err := tx.Get(&classCount, "SELECT COUNT(*) FROM `classes` WHERE `id` = ? FOR UPDATE", classID); err != nil {
+	if err := tx.Get(&classCount, "SELECT COUNT(*) FROM `classes` WHERE `id` = ?  LIMIT 1 FOR UPDATE", classID); err != nil {
 		c.Logger().Error(err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
@@ -1431,7 +1431,7 @@ func (h *handlers) AddAnnouncement(c echo.Context) error {
 	defer tx.Rollback()
 
 	var count int
-	if err := tx.Get(&count, "SELECT COUNT(*) FROM `courses` WHERE `id` = ?", req.CourseID); err != nil {
+	if err := tx.Get(&count, "SELECT COUNT(*) FROM `courses` WHERE `id` = ? LIMIT 1", req.CourseID); err != nil {
 		c.Logger().Error(err)
 		return c.NoContent(http.StatusInternalServerError)
 	}

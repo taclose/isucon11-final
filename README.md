@@ -213,4 +213,5 @@ Commitは仕方ない？INSERT courcesから挑戦していく。
 Slow Queryの調査からは劇的な改善点が見つからない。
 ぐっちょくに次はコード読んで探してみる。
 
+## Count(*)でLIMIT 1 としていい場所はLIMIT 1とする(SCORE: 3346)
 
