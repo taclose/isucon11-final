@@ -458,7 +458,7 @@ func (h *handlers) RegisterCourses(c echo.Context) error {
 
 		// すでに履修登録済みの科目は無視する
 		var count int
-		if err := tx.Get(&count, "SELECT COUNT(*) FROM `registrations` WHERE `course_id` = ? AND `user_id` = ?", course.ID, userID); err != nil {
+		if err := tx.Get(&count, "SELECT COUNT(*) FROM `registrations` WHERE `course_id` = ? AND `user_id` = ? LIMIT 1", course.ID, userID); err != nil {
 			c.Logger().Error(err)
 			return c.NoContent(http.StatusInternalServerError)
 		}
@@ -919,7 +919,7 @@ func (h *handlers) SetCourseStatus(c echo.Context) error {
 	defer tx.Rollback()
 
 	var count int
-	if err := tx.Get(&count, "SELECT COUNT(*) FROM `courses` WHERE `id` = ? FOR UPDATE", courseID); err != nil {
+	if err := tx.Get(&count, "SELECT COUNT(*) FROM `courses` WHERE `id` = ?  LIMIT 1 FOR UPDATE", courseID); err != nil {
 		c.Logger().Error(err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
@@ -977,7 +977,7 @@ func (h *handlers) GetClasses(c echo.Context) error {
 	defer tx.Rollback()
 
 	var count int
-	if err := tx.Get(&count, "SELECT COUNT(*) FROM `courses` WHERE `id` = ?", courseID); err != nil {
+	if err := tx.Get(&count, "SELECT COUNT(*) FROM `courses` WHERE `id` = ? LIMIT 1", courseID); err != nil {
 		c.Logger().Error(err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
@@ -1111,7 +1111,7 @@ func (h *handlers) SubmitAssignment(c echo.Context) error {
 	}
 
 	var registrationCount int
-	if err := tx.Get(&registrationCount, "SELECT COUNT(*) FROM `registrations` WHERE `user_id` = ? AND `course_id` = ?", userID, courseID); err != nil {
+	if err := tx.Get(&registrationCount, "SELECT COUNT(*) FROM `registrations` WHERE `user_id` = ? AND `course_id` = ? LIMIT 1", userID, courseID); err != nil {
 		c.Logger().Error(err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
@@ -1227,7 +1227,7 @@ func (h *handlers) DownloadSubmittedAssignments(c echo.Context) error {
 	defer tx.Rollback()
 
 	var classCount int
-	if err := tx.Get(&classCount, "SELECT COUNT(*) FROM `classes` WHERE `id` = ? FOR UPDATE", classID); err != nil {
+	if err := tx.Get(&classCount, "SELECT COUNT(*) FROM `classes` WHERE `id` = ?  LIMIT 1 FOR UPDATE", classID); err != nil {
 		c.Logger().Error(err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
@@ -1431,7 +1431,7 @@ func (h *handlers) AddAnnouncement(c echo.Context) error {
 	defer tx.Rollback()
 
 	var count int
-	if err := tx.Get(&count, "SELECT COUNT(*) FROM `courses` WHERE `id` = ?", req.CourseID); err != nil {
+	if err := tx.Get(&count, "SELECT COUNT(*) FROM `courses` WHERE `id` = ? LIMIT 1", req.CourseID); err != nil {
 		c.Logger().Error(err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
@@ -1466,11 +1466,29 @@ func (h *handlers) AddAnnouncement(c echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
-	for _, user := range targets {
-		if _, err := tx.Exec("INSERT INTO `unread_announcements` (`announcement_id`, `user_id`) VALUES (?, ?)", req.ID, user.ID); err != nil {
-			c.Logger().Error(err)
-			return c.NoContent(http.StatusInternalServerError)
+	if len(targets) == 0 {
+		return c.NoContent(http.StatusCreated)
+	}
+
+	// SQL文を事前に準備
+	query = "INSERT INTO `unread_announcements` (`announcement_id`, `user_id`) VALUES "
+	values := []interface{}{}
+
+	for i, user := range targets {
+		query += "(?, ?)"
+		values = append(values, req.ID, user.ID)
+
+		// 最後の行でない場合、カンマを追加
+		if i < len(targets)-1 {
+			query += ","
 		}
+	}
+
+	// バッチ挿入を実行
+	if _, err := tx.Exec(query, values...); err != nil {
+		c.Logger().Error(err)
+		tx.Rollback()
+		return c.NoContent(http.StatusInternalServerError)
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -1521,13 +1539,19 @@ func (h *handlers) GetAnnouncementDetail(c echo.Context) error {
 		return c.String(http.StatusNotFound, "No such announcement.")
 	}
 
-	var registrationCount int
-	if err := tx.Get(&registrationCount, "SELECT COUNT(*) FROM `registrations` WHERE `course_id` = ? AND `user_id` = ?", announcement.CourseID, userID); err != nil {
-		c.Logger().Error(err)
-		return c.NoContent(http.StatusInternalServerError)
-	}
-	if registrationCount == 0 {
-		return c.String(http.StatusNotFound, "No such announcement.")
+	// この処理不要と思うので削除。履修されてなかったら既に上で 404を返してるはず。先にやるならまだわかるけど。
+	// var registrationCount int
+	// if err := tx.Get(&registrationCount, "SELECT COUNT(*) FROM `registrations` WHERE `course_id` = ? AND `user_id` = ?", announcement.CourseID, userID); err != nil {
+	// 	c.Logger().Error(err)
+	// 	return c.NoContent(http.StatusInternalServerError)
+	// }
+	// if registrationCount == 0 {
+	// 	return c.String(http.StatusNotFound, "No such announcement.")
+	// }
+
+	// 既に削除ずみならUPDATE不要
+	if !announcement.Unread {
+		return c.JSON(http.StatusOK, announcement)
 	}
 
 	if _, err := tx.Exec("UPDATE `unread_announcements` SET `is_deleted` = true WHERE `announcement_id` = ? AND `user_id` = ?", announcementID, userID); err != nil {
